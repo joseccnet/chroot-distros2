@@ -1,34 +1,38 @@
 #!/bin/bash
-# Ejecute para revisar si hay actualizaciones o mejoras en los archivos del proyecto
+# Descarga la última versión de chroot-distros2 desde GitHub
+# Uso: ./update_chroot-distros.sh
+
 set -euo pipefail
 
-cd "$(dirname "$0")"
+REPO_URL="https://github.com/joseccnet/chroot-distros2.git"
+DESTINO="$(cd "$(dirname "$0")" && pwd)"
 
-# Verificar integridad del repositorio
-if ! git fsck --no-dangling 2>/dev/null; then
-    echo "⚠ Repositorio con errores, reconstruyendo índice..."
-    rm -f .git/index
-    git reset HEAD -- . 2>/dev/null || true
+# Verificar que git esté instalado
+if ! command -v git &>/dev/null; then
+    echo "ERROR: git no está instalado."
+    echo "  Instálelo: sudo apt-get install git   (Debian/Ubuntu)"
+    echo "             sudo yum install git        (CentOS/RHEL)"
+    echo "             sudo dnf install git        (Fedora)"
+    exit 1
 fi
 
-# Obtener la rama actual
-rama=$(git symbolic-ref --short HEAD 2>/dev/null || echo "master")
-
-# Verificar que el remote exista
-if ! git remote -v 2>/dev/null | grep -q fetch; then
-    echo "⚠ No hay remote configurado. Agregando remote por defecto..."
-    git remote add origin https://github.com/joseccnet/chroot-distros2.git
-fi
-
-echo "Actualizando desde origin/$rama ..."
-git fetch --all
-
-if git rev-parse --verify "origin/$rama" >/dev/null 2>&1; then
-    git reset --hard "origin/$rama"
+if [ -d "$DESTINO/.git" ]; then
+    # Ya es un repositorio: actualizar
+    echo "Actualizando chroot-distros2 en $DESTINO ..."
+    cd "$DESTINO"
+    git fetch origin
+    git reset --hard "origin/$(git symbolic-ref --short HEAD 2>/dev/null || echo master)"
     chmod 750 *.sh
     echo "✅ Actualización completada."
 else
-    echo "⚠ La rama '$rama' no existe en el remote."
-    echo "   Revise las ramas disponibles: git branch -r"
-    exit 1
+    # No existe: clonar en el directorio actual
+    echo "Descargando chroot-distros2 en $DESTINO ..."
+    CLONAR_EN="$(dirname "$DESTINO")"
+    NOMBRE_DIR="$(basename "$DESTINO")"
+    cd "$CLONAR_EN"
+    git clone "$REPO_URL" "$NOMBRE_DIR"
+    chmod 750 "$DESTINO"/*.sh
+    echo "✅ Descarga completada."
+    echo ""
+    echo "Las jaulas se crean en /opt/jaulas2 (configurable en chroot.conf)"
 fi
