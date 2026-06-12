@@ -17,20 +17,28 @@ if ! command -v git &>/dev/null; then
 fi
 
 if [ -d "$DESTINO/.git" ]; then
-    # Ya es un repositorio: actualizar
     echo "Actualizando chroot-distros2 en $DESTINO ..."
     cd "$DESTINO"
     git fetch origin
-    git reset --hard "origin/$(git symbolic-ref --short HEAD 2>/dev/null || echo master)"
+
+    RAMA=$(git remote show origin 2>/dev/null | grep 'HEAD branch' | awk '{print $NF}' || echo "")
+    if [ -z "$RAMA" ]; then
+        RAMA=$(git symbolic-ref --short HEAD 2>/dev/null || echo "main")
+    fi
+
+    if git rev-parse --verify "origin/$RAMA" >/dev/null 2>&1; then
+        git reset --hard "origin/$RAMA"
+    else
+        echo "⚠ No se encontró la rama '$RAMA' en el remoto."
+        echo "  Ramas disponibles:"
+        git branch -r 2>/dev/null | sed 's/^/  /'
+        exit 1
+    fi
     chmod 750 *.sh
     echo "✅ Actualización completada."
 else
-    # No existe: clonar en el directorio actual
     echo "Descargando chroot-distros2 en $DESTINO ..."
-    CLONAR_EN="$(dirname "$DESTINO")"
-    NOMBRE_DIR="$(basename "$DESTINO")"
-    cd "$CLONAR_EN"
-    git clone "$REPO_URL" "$NOMBRE_DIR"
+    git clone "$REPO_URL" "$DESTINO"
     chmod 750 "$DESTINO"/*.sh
     echo "✅ Descarga completada."
     echo ""
