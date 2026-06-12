@@ -411,8 +411,9 @@ montar_filesystem() {
         return 1
     }
 
-    # Verificar si ya está montado (Idempotencia)
-    if mountpoint -q "$ruta_completa" 2>/dev/null; then
+    # Verificar si ya está montado (Idempotencia robusta)
+    # Usa /proc/mounts en vez de mountpoint para detectar montajes anidados/acumulados
+    if grep -qF " $ruta_completa " /proc/mounts 2>/dev/null; then
         info "$punto_montaje ya está montado (idempotente)"
         log_operation "mount" "$chroot_path" "SKIP:already_mounted:$punto_montaje"
         return 0
@@ -435,6 +436,10 @@ montar_filesystem() {
             }
             ;;
         /dev/pts)
+            # Limpiar montajes previos acumulados (por fallos de idempotencia anteriores)
+            while grep -qF " $ruta_completa " /proc/mounts 2>/dev/null; do
+                umount "$ruta_completa" 2>/dev/null || break
+            done
             info "Montando /dev/pts con aislamiento..."
             mount --bind /dev/pts "$ruta_completa" 2>/dev/null && {
                 mount --make-slave "$ruta_completa" 2>/dev/null || true
@@ -618,16 +623,26 @@ desmontar_filesystem() {
         return 0
     fi
 
-    # Verificar si está montado
-    if ! mountpoint -q "$punto_montaje" 2>/dev/null; then
+    # Verificar si está montado (revisa /proc/mounts para detectar capas acumuladas)
+    if ! grep -qF " $punto_montaje " /proc/mounts 2>/dev/null; then
         return 0
     fi
 
     for intento in $(seq 1 $intentos); do
         echo " + Desmontando $punto_montaje (intento $intento/$intentos)..."
 
-        if umount "$punto_montaje" 2>/dev/null; then
-            exito "$punto_montaje desmontado"
+        # Desmontar todas las capas acumuladas del mismo punto
+        capas=0
+        while grep -qF " $punto_montaje " /proc/mounts 2>/dev/null; do
+            if umount "$punto_montaje" 2>/dev/null; then
+                capas=$((capas + 1))
+            else
+                break
+            fi
+        done
+
+        if [ $capas -gt 0 ]; then
+            exito "$punto_montaje desmontado ($capas capa(s))"
             log_operation "umount" "$(dirname "$punto_montaje")" "OK:$punto_montaje"
             return 0
         fi
