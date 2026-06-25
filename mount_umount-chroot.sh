@@ -309,12 +309,22 @@ configurar_red() {
 
 configurar_timezone() {
     local chroot_path="$1"
-    local timezone_file="/usr/share/zoneinfo/${TZ_CHROOT:-America/Mexico_City}"
+    local timezone="${TZ_CHROOT:-America/Mexico_City}"
 
-    # Verificar que el archivo de timezone exista en el host
+    # No sobrescribir si el usuario ya configuró tzdata manualmente dentro de la jaula
+    if [ -f "$chroot_path/etc/timezone" ]; then
+        local tz_actual
+        tz_actual=$(cat "$chroot_path/etc/timezone" 2>/dev/null || echo "")
+        if [ -n "$tz_actual" ] && [ "$tz_actual" != "Etc/UTC" ]; then
+            info "Timezone ya configurado manualmente: $tz_actual (omitido)"
+            return 0
+        fi
+    fi
+
+    local timezone_file="/usr/share/zoneinfo/$timezone"
     if [ ! -f "$timezone_file" ]; then
-        advertencia "Archivo de timezone no encontrado: $timezone_file"
-        info "Usando UTC como fallback"
+        advertencia "Zona horaria no encontrada: $timezone, usando UTC"
+        timezone="UTC"
         timezone_file="/usr/share/zoneinfo/UTC"
         if [ ! -f "$timezone_file" ]; then
             error_msg "No se encontró ningún archivo de timezone válido"
@@ -327,16 +337,16 @@ configurar_timezone() {
         chroot "$chroot_path" mv -f /etc/localtime /etc/localtime.ori 2>/dev/null || true
     fi
 
-    # Crear enlace simbólico
-    local tz_path="/etc/localtime"
-    chroot "$chroot_path" ln -sf "$tz_path" /etc/localtime 2>/dev/null || {
-        # Fallback: copiar el archivo directamente
+    # Crear enlace simbólico (corregido: apunta a la zona real, no a sí mismo)
+    chroot "$chroot_path" ln -sf "/usr/share/zoneinfo/$timezone" /etc/localtime 2>/dev/null || {
         cp -f "$timezone_file" "$chroot_path/etc/localtime" 2>/dev/null || \
             advertencia "No se pudo configurar el timezone"
-        return 0
     }
 
-    exito "Timezone configurado: $timezone_file"
+    # Escribir /etc/timezone (lo usa dpkg-reconfigure tzdata para mostrar la zona actual)
+    echo "$timezone" > "$chroot_path/etc/timezone" 2>/dev/null || true
+
+    exito "Timezone configurado: $timezone"
     return 0
 }
 
