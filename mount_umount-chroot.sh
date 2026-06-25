@@ -429,8 +429,16 @@ montar_filesystem() {
         return 0
     fi
 
-    # Verificar que el directorio no tenga contenido antes del bind
-    if [ "$(ls -A "$ruta_completa" 2>/dev/null)" ]; then
+    # Verificar que el directorio no tenga contenido REAL antes del bind
+    # Se excluyen: nodos de dispositivo (creados por debootstrap en /dev),
+    # lost+found (creado por mkfs), y directorios virtuales vacíos.
+    # Si solo están esos archivos estándar, la advertencia sería ruido.
+    contenido_real=$(find "$ruta_completa" -xdev -maxdepth 1 \
+        ! -name 'lost+found' \
+        ! -type b ! -type c \
+        2>/dev/null | wc -l)
+    # find siempre cuenta el directorio base como 1, contenido real > 1
+    if [ "${contenido_real:-0}" -gt 1 ]; then
         advertencia "$punto_montaje contiene archivos antes del montaje. Serán ocultados por el bind mount."
     fi
 
