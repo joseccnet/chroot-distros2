@@ -750,7 +750,10 @@ mostrar_ayuda() {
     echo "  $0 NombreJaula [mount|umount]"
     echo "  $0 mountall          # Monta todas las jaulas"
     echo "  $0 umountall         # Desmonta todas las jaulas"
+    echo "  $0 status [-v|--verbose]"
     echo "  $0 status            # Muestra estado de todas las jaulas"
+    echo "  $0 status -v         # Muestra todos los procesos (sin límite)"
+    echo "  $0 status --verbose  # Muestra todos los procesos (sin límite)"
     echo ""
     echo "Lee la configuración de /etc/mychroot.conf en cada jaula."
     echo ""
@@ -787,6 +790,16 @@ if [ "${1:-}" == "status" ]; then
     echo ""
     echo -e "${CIAN}Reporte de jaulas en $ROOTJAIL${NC}"
     echo -e "${AZUL}────────────────────────────────────────────────────────────────────────────────${NC}"
+
+    # Modo verbose: muestra todos los procesos sin límite
+    #   ./mount_umount-chroot.sh status           → max 12 procesos
+    #   ./mount_umount-chroot.sh status -v        → todos
+    #   ./mount_umount-chroot.sh status --verbose  → todos
+    #   STATUS_MAX_PROC=999 ./mount_umount-chroot.sh status → límite personalizado
+    local max_procesos="${STATUS_MAX_PROC:-12}"
+    if [ "${2:-}" == "--verbose" ] || [ "${2:-}" == "-v" ]; then
+        max_procesos=0
+    fi
 
     # Pre-obtener montajes para evitar múltiples llamadas pesadas en el bucle
     # Guardamos en una variable local por rendimiento
@@ -832,7 +845,7 @@ if [ "${1:-}" == "status" ]; then
                 fi
 
                 for p in $pids; do
-                    if [ $count -ge 12 ]; then
+                    if [ $max_procesos -gt 0 ] && [ $count -ge $max_procesos ]; then
                         procesos_str+="${AZUL}... (+)${NC}"
                         break
                     fi
