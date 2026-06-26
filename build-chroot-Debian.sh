@@ -204,41 +204,26 @@ verificaciones_previas() {
 }
 
 # ==============================================================================
-# Verificar/actualizar keyring para versiones de Debian
+# Descargar y actualizar keyring de Debian
 # ==============================================================================
+KEYRING_FLAG=""
 verificar_keyring_debian() {
     local version="$1"
     local keyring="/usr/share/keyrings/debian-archive-keyring.gpg"
 
-    if [ ! -f "$keyring" ]; then
-        info "Keyring de Debian no encontrado, descargando..."
-        wget -qO "$keyring" "https://keyring.debian.org/keyrings/debian-archive-keyring.gpg" 2>/dev/null || {
-            error_msg "No se pudo descargar el keyring de Debian"
-            exit 1
-        }
-        exito "Keyring de Debian descargado"
-        return 0
-    fi
-
-    if debootstrap --dry-run --keyring="$keyring" "$version" /tmp/.test-keyring 2>/dev/null; then
-        return 0
-    fi
-
-    info "Keyring local desactualizado para Debian $version, descargando actualización..."
     local temp_keyring
     temp_keyring=$(mktemp)
 
-    if wget -qO "$temp_keyring" "https://keyring.debian.org/keyrings/debian-archive-keyring.gpg" 2>/dev/null ||
-       wget -qO "$temp_keyring" "https://ftp-master.debian.org/keys/archive-key-$(echo "$version" | sed 's/[0-9]//g').asc" 2>/dev/null; then
+    info "Descargando keyring de Debian..."
+    if wget -qO "$temp_keyring" "https://keyring.debian.org/keyrings/debian-archive-keyring.gpg" 2>/dev/null; then
         cp "$temp_keyring" "$keyring"
-        rm -f "$temp_keyring"
-        exito "Keyring de Debian actualizado para $version"
+        KEYRING_FLAG="--keyring=$keyring"
+        exito "Keyring de Debian descargado"
     else
-        rm -f "$temp_keyring"
-        advertencia "No se pudo actualizar el keyring automáticamente"
-        echo "   Puede continuar con SIN_VERIFICACION_GPG=true (solo desarrollo)"
-        echo "   O instale: sudo apt-get install --reinstall debian-keyring"
+        advertencia "No se pudo descargar el keyring de Debian"
+        echo "   Si la verificación GPG falla, use SIN_VERIFICACION_GPG=true"
     fi
+    rm -f "$temp_keyring"
 }
 
 # ==============================================================================
@@ -609,7 +594,7 @@ verificar_keyring_debian "$version"
 if verificar_construccion_cruzada; then
     info "Modo construcción cruzada (--foreign)"
     echo "   Primera etapa: extrayendo archivos base..."
-    debootstrap --arch "$arch" --verbose $FLAG_GPG \
+    debootstrap --arch "$arch" --verbose $FLAG_GPG $KEYRING_FLAG \
         --include="$paquetes_debian" "$version" "$CHROOT" "$MIRROR_PRINCIPAL" || {
         echo ""
         error_msg "Falló debootstrap (primera etapa). Revise los mensajes anteriores."
@@ -669,7 +654,7 @@ fi
 archiveSource=""
 for mirror in "${local_mirrors[@]}"; do
     info "Intentando mirror: $mirror/dists/$version/ ..."
-    if debootstrap --arch "$arch" --verbose $FLAG_GPG \
+    if debootstrap --arch "$arch" --verbose $FLAG_GPG $KEYRING_FLAG \
         --include="$paquetes_debian" "$version" "$CHROOT" "$mirror"; then
         case "$mirror" in
             *archive*) archiveSource="archive" ;;

@@ -189,45 +189,31 @@ verificaciones_previas() {
 }
 
 # ==============================================================================
-# Verificar/actualizar keyring para versiones recientes de Ubuntu
+# Descargar y configurar keyring de Ubuntu (necesario cuando el host es Debian)
 # ==============================================================================
+KEYRING_FLAG=""
 verificar_keyring_ubuntu() {
     local version="$1"
     local keyring="/usr/share/keyrings/ubuntu-archive-keyring.gpg"
 
-    # Verificar si el keyring actual reconoce la versión destino
-    # Si debootstrap falla por clave desconocida, descargar keyring actualizado
-    if [ ! -f "$keyring" ]; then
-        info "Keyring de Ubuntu no encontrado, descargando..."
-        wget -qO "$keyring" "http://archive.ubuntu.com/ubuntu/project/ubuntu-archive-keyring.gpg" 2>/dev/null || {
-            error_msg "No se pudo descargar el keyring de Ubuntu. Verifique la conexión o use SIN_VERIFICACION_GPG=true"
-            exit 1
-        }
-        exito "Keyring de Ubuntu descargado"
-        return 0
-    fi
-
-    # Intentar verificar con el keyring actual (prueba rápida)
-    if debootstrap --dry-run --keyring="$keyring" "$version" /tmp/.test-keyring 2>/dev/null; then
-        return 0
-    fi
-
-    # El keyring está desactualizado, intentar actualizarlo
-    info "Keyring local desactualizado para Ubuntu $version, descargando actualización..."
+    # Descargar keyring de Ubuntu (siempre el más reciente)
+    # En hosts Debian, debootstrap usa el keyring de Debian por defecto,
+    # que no reconoce las claves de Ubuntu. Descargamos el keyring de Ubuntu
+    # y lo pasamos explícitamente a debootstrap con --keyring.
     local temp_keyring
     temp_keyring=$(mktemp)
 
-    if wget -qO "$temp_keyring" "http://archive.ubuntu.com/ubuntu/project/ubuntu-archive-keyring.gpg" 2>/dev/null ||
-       wget -qO "$temp_keyring" "https://raw.githubusercontent.com/ubuntu-keyring/ubuntu-keyring/main/keyrings/ubuntu-archive-keyring.gpg" 2>/dev/null; then
+    info "Descargando keyring de Ubuntu..."
+    if wget -qO "$temp_keyring" "http://archive.ubuntu.com/ubuntu/project/ubuntu-archive-keyring.gpg" 2>/dev/null; then
         cp "$temp_keyring" "$keyring"
-        rm -f "$temp_keyring"
-        exito "Keyring de Ubuntu actualizado para $version"
+        KEYRING_FLAG="--keyring=$keyring"
+        exito "Keyring de Ubuntu descargado"
     else
-        rm -f "$temp_keyring"
-        advertencia "No se pudo actualizar el keyring automáticamente"
-        echo "   Puede continuar con SIN_VERIFICACION_GPG=true (solo desarrollo)"
-        echo "   O instale manualmente: sudo apt-get install --reinstall ubuntu-keyring"
+        advertencia "No se pudo descargar el keyring de Ubuntu"
+        echo "   Si el host es Debian, la verificación GPG puede fallar."
+        echo "   Use SIN_VERIFICACION_GPG=true como alternativa."
     fi
+    rm -f "$temp_keyring"
 }
 
 # ==============================================================================
@@ -459,16 +445,22 @@ verificar_keyring_ubuntu "$version"
 if verificar_construccion_cruzada; then
     info "Modo construcción cruzada (--foreign)"
     echo "   Primera etapa: extrayendo archivos base..."
-    debootstrap --arch "$arch" --verbose $FLAG_GPG \
+    debootstrap --arch "$arch" --verbose $FLAG_GPG $KEYRING_FLAG \
         --include="$paquetes_ubuntu" "$version" "$CHROOT" "$MIRROR_PRINCIPAL" || {
         echo ""
-        echo "   Intentando con mirror de old-releases..."
-        debootstrap --arch "$arch" --verbose $FLAG_GPG \
-            --include="$paquetes_ubuntu" "$version" "$CHROOT" "http://old-releases.ubuntu.com/ubuntu" || {
+        echo "   Intentando con mirror alternativo..."
+        local_mirror_alt="http://old-releases.ubuntu.com/ubuntu"
+        if [[ -n "${VERSIONES_EOL[$version]+x}" ]]; then
+            local_mirror_alt="http://old-releases.ubuntu.com/ubuntu"
+        else
+            local_mirror_alt="http://archive.ubuntu.com/ubuntu"
+        fi
+        debootstrap --arch "$arch" --verbose $FLAG_GPG $KEYRING_FLAG \
+            --include="$paquetes_ubuntu" "$version" "$CHROOT" "$local_mirror_alt" || {
             error_msg "Falló debootstrap (primera etapa). Revise los mensajes anteriores."
             exit 1
         }
-        archiveSite="old-releases"
+        archiveSite="$local_mirror_alt"
     }
 
     info "Primera etapa completada exitosamente"
@@ -514,17 +506,25 @@ fi
 
 # Construcción normal (misma arquitectura)
 info "Intentando mirror principal: $MIRROR_PRINCIPAL/dists/$version/ ..."
-if debootstrap --components=main,universe  --arch "$arch" --verbose $FLAG_GPG \
+if debootstrap --components=main,universe --arch "$arch" --verbose $FLAG_GPG $KEYRING_FLAG \
     --include="$paquetes_ubuntu" "$version" "$CHROOT" "$MIRROR_PRINCIPAL"; then
     archiveSite="archive"
     exito "debootstrap completado exitosamente"
 else
-    advertencia "Mirror principal falló, intentando old-releases..."
-    if debootstrap --arch "$arch" --verbose $FLAG_GPG \
-        --include="$paquetes_ubuntu" "$version" "$CHROOT" "http://old-releases.ubuntu.com/ubuntu"; then
-        archiveSite="old-releases"
+    # Solo usar old-releases para versiones EOL, no para la actual (resolute, noble, etc.)
+    if [[ -n "${VERSIONES_EOL[$version]+x}" ]]; then
+        advertencia "Mirror principal falló, intentando old-releases..."
+        if debootstrap --arch "$arch" --verbose $FLAG_GPG $KEYRING_FLAG \
+            --include="$paquetes_ubuntu" "$version" "$CHROOT" "http://old-releases.ubuntu.com/ubuntu"; then
+            archiveSite="old-releases"
+        else
+            error_msg "Falló debootstrap en ambos intentos. Revise los mensajes anteriores."
+            exit 1
+        fi
     else
-        error_msg "Falló debootstrap en ambos intentos. Revise los mensajes anteriores."
+        error_msg "Falló debootstrap. Revise el mirror o la conexión a internet."
+        echo "   Mirror: $MIRROR_PRINCIPAL"
+        echo "   Versión: $version"
         exit 1
     fi
 fi

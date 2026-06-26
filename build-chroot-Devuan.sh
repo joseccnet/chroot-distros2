@@ -125,41 +125,45 @@ verificaciones_previas() {
 }
 
 # ==============================================================================
-# Verificar/actualizar keyring para Devuan
+# Descargar keyring para Devuan
 # ==============================================================================
+KEYRING_FLAG=""
 verificar_keyring_devuan() {
     local version="$1"
     local keyring="/usr/share/keyrings/devuan-archive-keyring.gpg"
-    local debian_keyring="/usr/share/keyrings/debian-archive-keyring.gpg"
 
-    # Devuan usa keyring propio o el de Debian como fallback
-    for kr in "$keyring" "$debian_keyring"; do
-        if [ -f "$kr" ] && debootstrap --dry-run --keyring="$kr" "$version" /tmp/.test-keyring 2>/dev/null; then
-            return 0
-        fi
-    done
-
-    # Intentar descargar keyring de Devuan
-    info "Keyring para Devuan no encontrado o desactualizado, descargando..."
     mkdir -p "$(dirname "$keyring")"
     local temp_keyring
     temp_keyring=$(mktemp)
 
+    info "Descargando keyring de Devuan..."
     if wget -qO "$temp_keyring" "https://deb.devuan.org/devuan/pool/main/d/devuan-keyring/devuan-keyring_latest_all.deb" 2>/dev/null; then
         dpkg -x "$temp_keyring" /tmp/devuan-keyring-extract 2>/dev/null
         local found_key
         found_key=$(find /tmp/devuan-keyring-extract -name 'devuan-archive-keyring.gpg' 2>/dev/null | head -1)
         if [ -n "$found_key" ]; then
             cp "$found_key" "$keyring"
+            KEYRING_FLAG="--keyring=$keyring"
             exito "Keyring de Devuan descargado"
+        else
+            # Fallback: usar keyring de Debian
+            if [ -f "/usr/share/keyrings/debian-archive-keyring.gpg" ]; then
+                KEYRING_FLAG="--keyring=/usr/share/keyrings/debian-archive-keyring.gpg"
+                info "Usando keyring de Debian como fallback para Devuan"
+            fi
         fi
         rm -rf /tmp/devuan-keyring-extract
+    else
+        # Fallback: usar keyring de Debian
+        if [ -f "/usr/share/keyrings/debian-archive-keyring.gpg" ]; then
+            KEYRING_FLAG="--keyring=/usr/share/keyrings/debian-archive-keyring.gpg"
+            info "Usando keyring de Debian como fallback para Devuan"
+        else
+            advertencia "No se pudo obtener keyring de Devuan ni Debian."
+            echo "   Use SIN_VERIFICACION_GPG=true si es necesario."
+        fi
     fi
     rm -f "$temp_keyring"
-
-    if [ ! -f "$keyring" ]; then
-        advertencia "No se pudo obtener keyring de Devuan. Use SIN_VERIFICACION_GPG=true si es necesario."
-    fi
 }
 
 # ==============================================================================
@@ -422,12 +426,12 @@ verificar_keyring_devuan "$version"
 info "Ejecutando debootstrap..."
 local_version_debootstrap="$version"
 
-if debootstrap --arch "$arch" --verbose $FLAG_GPG \
+if debootstrap --arch "$arch" --verbose $FLAG_GPG $KEYRING_FLAG \
     --include="$paquetes_devuan" "$local_version_debootstrap" "$CHROOT" "$MIRROR_DEVUAN"; then
     exito "debootstrap completado"
 else
     advertencia "Mirror principal falló, intentando alternativa..."
-    debootstrap --arch "$arch" --verbose $FLAG_GPG \
+    debootstrap --arch "$arch" --verbose $FLAG_GPG $KEYRING_FLAG \
         --include="$paquetes_devuan" "$local_version_debootstrap" "$CHROOT" "http://deb.devuan.org/devuan" || {
         error_msg "Falló debootstrap en todos los mirrors"
         exit 1
