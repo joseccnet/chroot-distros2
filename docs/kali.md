@@ -70,7 +70,7 @@ sudo SIN_VERIFICACION_GPG=true ./build-chroot-Kali.sh mi-kali
 
 ```bash
 sudo ./mount_umount-chroot.sh mi-kali mount
-sudo chroot /opt/jaulas2/mi-kali
+sudo chroot /opt/jaulas/mi-kali
 ```
 
 ---

@@ -79,7 +79,7 @@ Antes de crear tu primera jaula, revisa el archivo [`chroot.conf`](configuracion
 
 | Variable | Default | Descripción |
 |---|---|---|
-| `ROOTJAIL` | `/opt/jaulas2` | Directorio donde se crearán las jaulas |
+| `ROOTJAIL` | `/opt/jaulas` | Directorio donde se crearán las jaulas |
 | `TZ_CHROOT` | `America/Mexico_City` | Zona horaria dentro de las jaulas |
 
 ```bash

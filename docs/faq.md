@@ -45,7 +45,7 @@
 ### ¿Cómo entro a la jaula?
 
 ```bash
-sudo chroot /opt/jaulas2/mi-debian /bin/bash
+sudo chroot /opt/jaulas/mi-debian /bin/bash
 ```
 
 Para salir, escribe `exit`.
@@ -83,10 +83,10 @@ FS:/opt/compartido
 sudo ./mount_umount-chroot.sh mi-debian umount
 
 # Comprimir
-sudo tar -czf mi-debian-backup.tar.gz -C /opt/jaulas2 mi-debian
+sudo tar -czf mi-debian-backup.tar.gz -C /opt/jaulas mi-debian
 
 # Restaurar
-sudo tar -xzf mi-debian-backup.tar.gz -C /opt/jaulas2
+sudo tar -xzf mi-debian-backup.tar.gz -C /opt/jaulas
 ```
 
 ### ¿Puedo tener varias versiones de la misma distro?
@@ -106,12 +106,12 @@ Sí, siempre que el otro servidor tenga el mismo kernel o uno más nuevo:
 ```bash
 # En el origen
 sudo ./mount_umount-chroot.sh mi-debian umount
-sudo tar -czf mi-debian.tar.gz -C /opt/jaulas2 mi-debian
+sudo tar -czf mi-debian.tar.gz -C /opt/jaulas mi-debian
 
 # En el destino
-sudo tar -xzf mi-debian.tar.gz -C /opt/jaulas2
+sudo tar -xzf mi-debian.tar.gz -C /opt/jaulas
 sudo ./mount_umount-chroot.sh mi-debian mount
-sudo chroot /opt/jaulas2/mi-debian /bin/bash
+sudo chroot /opt/jaulas/mi-debian /bin/bash
 ```
 
 ---
@@ -156,13 +156,13 @@ Los límites (ulimit) se **heredan del proceso padre**:
 ulimit -n
 
 # Entrar a la jaula y verificar (debe ser el mismo valor)
-sudo chroot /opt/jaulas2/mi-debian /bin/bash -c "ulimit -n"
+sudo chroot /opt/jaulas/mi-debian /bin/bash -c "ulimit -n"
 ```
 
 Para cambiarlos:
 ```bash
 # Temporal, antes de hacer chroot
-prlimit --nofile=65536 chroot /opt/jaulas2/mi-debian /bin/bash
+prlimit --nofile=65536 chroot /opt/jaulas/mi-debian /bin/bash
 
 # Permanente: editar /etc/security/limits.conf del host
 ```
@@ -196,7 +196,7 @@ sudo ./mount_umount-chroot.sh status
 sudo ./mount_umount-chroot.sh jaula-parcial umount
 
 # 3. Eliminar el chroot parcial
-sudo rm -rf /opt/jaulas2/jaula-parcial
+sudo rm -rf /opt/jaulas/jaula-parcial
 
 # 4. Reintentar la construcción
 ```

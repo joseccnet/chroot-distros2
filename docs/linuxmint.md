@@ -74,7 +74,7 @@ sudo MIRROR_UBUNTU=http://mirror.local/ubuntu \
 
 ```bash
 sudo ./mount_umount-chroot.sh mi-mint mount
-sudo chroot /opt/jaulas2/mi-mint
+sudo chroot /opt/jaulas/mi-mint
 ```
 
 ---

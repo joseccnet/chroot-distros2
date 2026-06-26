@@ -16,7 +16,7 @@ Archivo ubicado en la raíz del proyecto. Es compartido por **todos** los script
 
 | Variable | Default | Descripción |
 |---|---|---|
-| `ROOTJAIL` | `/opt/jaulas2` | Directorio base donde se crean todas las jaulas |
+| `ROOTJAIL` | `/opt/jaulas` | Directorio base donde se crean todas las jaulas |
 | `TZ_CHROOT` | `America/Mexico_City` | Zona horaria que se configurará dentro de cada jaula |
 
 ### Paquetes por distribución

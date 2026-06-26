@@ -74,7 +74,7 @@ sudo ESPACIO_MINIMO_GB=5 ./build-chroot-Devuan.sh mi-devuan excalibur
 
 ```bash
 sudo ./mount_umount-chroot.sh mi-devuan mount
-sudo chroot /opt/jaulas2/mi-devuan
+sudo chroot /opt/jaulas/mi-devuan
 ```
 
 ---

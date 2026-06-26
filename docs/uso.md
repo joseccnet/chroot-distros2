@@ -53,10 +53,10 @@ sudo ./build-chroot-Centos.sh mi-centos stream9
  - - - - - - - - - - - - - - - - - -
  Instalando Debian Chroot
  - - - - - - - - - - - - - - - - - -
- Jaula:        /opt/jaulas2/mi-debian
+ Jaula:        /opt/jaulas/mi-debian
  Versión:      trixie
  ...
-✓ ÉXITO: La jaula /opt/jaulas2/mi-debian fue creada exitosamente.
+✓ ÉXITO: La jaula /opt/jaulas/mi-debian fue creada exitosamente.
 ```
 
 ### 2. Ver el estado de las jaulas
@@ -67,9 +67,9 @@ sudo ./mount_umount-chroot.sh status
 
 **Salida esperada:**
 ```
-  Reporte de jaulas en /opt/jaulas2
+  Reporte de jaulas en /opt/jaulas
   ─────────────────────────────────
-  ● /opt/jaulas2/mi-debian [MONTADA]
+  ● /opt/jaulas/mi-debian [MONTADA]
     ├─ Procesos: bash(12345), cron(12346)
     └─ Filesystems:
       ├─ /proc (proc, nosuid,noexec,nodev)
@@ -77,7 +77,7 @@ sudo ./mount_umount-chroot.sh status
       ├─ /sys (sysfs, ro)
       └─ /home (/dev/sda2, rw)
 
-  ○ /opt/jaulas2/mi-ubuntu [DESMONTADA]
+  ○ /opt/jaulas/mi-ubuntu [DESMONTADA]
     ├─ Procesos: ninguno
     └─ Filesystems: ninguno
 ```
@@ -91,7 +91,7 @@ sudo ./mount_umount-chroot.sh mi-debian mount
 ### 4. Entrar a la jaula
 
 ```bash
-sudo chroot /opt/jaulas2/mi-debian /bin/bash
+sudo chroot /opt/jaulas/mi-debian /bin/bash
 ```
 
 Una vez dentro, notarás el prompt de chroot:
@@ -136,10 +136,10 @@ Esto ejecuta `debootstrap --foreign`. Después debes completar la segunda etapa 
 sudo ./mount_umount-chroot.sh mi-ubuntu-arm mount
 
 # 2. Segunda etapa
-sudo chroot /opt/jaulas2/mi-ubuntu-arm /debootstrap/debootstrap --second-stage
+sudo chroot /opt/jaulas/mi-ubuntu-arm /debootstrap/debootstrap --second-stage
 
 # 3. Actualizar
-sudo chroot /opt/jaulas2/mi-ubuntu-arm apt-get update && apt-get -y upgrade
+sudo chroot /opt/jaulas/mi-ubuntu-arm apt-get update && apt-get -y upgrade
 
 # 4. Desmontar
 sudo ./mount_umount-chroot.sh mi-ubuntu-arm umount
@@ -175,8 +175,8 @@ sudo DRY_RUN=true ./mount_umount-chroot.sh mi-debian mount
 
 Salida:
 ```
-ℹ INFO: [DRY-RUN] Montaría: /proc → /opt/jaulas2/mi-debian/proc
-ℹ INFO: [DRY-RUN] Montaría: /dev → /opt/jaulas2/mi-debian/dev
+ℹ INFO: [DRY-RUN] Montaría: /proc → /opt/jaulas/mi-debian/proc
+ℹ INFO: [DRY-RUN] Montaría: /dev → /opt/jaulas/mi-debian/dev
 ...
 ```
 
@@ -243,7 +243,7 @@ Para que un usuario remoto (via SSH) quede atrapado dentro de la jaula:
 
 ```ini
 Match User userbob
-        ChrootDirectory /opt/jaulas2/mi-debian
+        ChrootDirectory /opt/jaulas/mi-debian
         X11Forwarding no
         AllowTcpForwarding no
 ```
@@ -266,7 +266,7 @@ setcap cap_sys_chroot+ep /usr/sbin/chrootuser
 
 Luego el usuario puede entrar con:
 ```bash
-/usr/sbin/chrootuser /opt/jaulas2/mi-debian
+/usr/sbin/chrootuser /opt/jaulas/mi-debian
 ```
 
 ---

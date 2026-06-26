@@ -75,7 +75,7 @@ sudo FORZAR_EOL=true ./build-chroot-OpenSuse.sh mi-suse 15.5
 
 ```bash
 sudo ./mount_umount-chroot.sh mi-suse mount
-sudo chroot /opt/jaulas2/mi-suse
+sudo chroot /opt/jaulas/mi-suse
 ```
 
 ---

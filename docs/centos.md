@@ -62,7 +62,7 @@ sudo ./build-chroot-Centos.sh mi-centos5 5 i386
 
 ```bash
 sudo ./mount_umount-chroot.sh mi-centos mount
-sudo chroot /opt/jaulas2/mi-centos
+sudo chroot /opt/jaulas/mi-centos
 ```
 
 ---

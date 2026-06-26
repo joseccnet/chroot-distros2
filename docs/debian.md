@@ -77,7 +77,7 @@ sudo ESPACIO_MINIMO_GB=10 ./build-chroot-Debian.sh mi-debian trixie
 
 ```bash
 sudo ./mount_umount-chroot.sh mi-debian mount
-sudo chroot /opt/jaulas2/mi-debian
+sudo chroot /opt/jaulas/mi-debian
 ```
 
 ---

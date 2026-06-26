@@ -26,7 +26,7 @@ couldn't be verified because the public key is not available: NO_PUBKEY ED444FF0
 
 ```bash
 # Dentro de la jaula de Kali
-sudo chroot /opt/jaulas2/mi-kali /bin/bash
+sudo chroot /opt/jaulas/mi-kali /bin/bash
 apt-key adv --keyserver keyserver.ubuntu.com --recv-keys ED444FF07D8D0BF6
 apt-get update
 ```
@@ -135,14 +135,14 @@ sudo FORZAR_EOL=true ./build-chroot-Debian.sh mi-debian buster
 
 **Síntoma:**
 ```
-✗ ERROR: Espacio en disco insuficiente en /opt/jaulas2
+✗ ERROR: Espacio en disco insuficiente en /opt/jaulas
 ```
 
 **Solución:**
 
 ```bash
 # 1. Verificar espacio disponible
-df -h /opt/jaulas2
+df -h /opt/jaulas
 
 # 2. Aumentar el mínimo requerido (si tienes espacio pero el cálculo falla)
 sudo ESPACIO_MINIMO_GB=1 ./build-chroot-Debian.sh mi-debian trixie
@@ -170,8 +170,8 @@ sudo ./removeVM-chroot.sh jaula-vieja
 ```bash
 # 1. El script ya intenta terminar procesos automáticamente
 # 2. Si falla, puedes forzar desmontaje lazy:
-sudo umount -l /opt/jaulas2/mi-debian/proc
-sudo umount -l /opt/jaulas2/mi-debian/dev
+sudo umount -l /opt/jaulas/mi-debian/proc
+sudo umount -l /opt/jaulas/mi-debian/dev
 # ... repetir para cada FS montado
 
 # 3. O usar el script de clean-up
@@ -193,7 +193,7 @@ sudo ./mount_umount-chroot.sh mi-debian umount
 
 ```bash
 # ❌ INCORRECTO (peligroso)
-sudo rm -rf /opt/jaulas2/mi-debian
+sudo rm -rf /opt/jaulas/mi-debian
 
 # ✅ CORRECTO
 sudo ./removeVM-chroot.sh mi-debian
@@ -211,7 +211,7 @@ Este script:
 
 **Síntoma:**
 ```
-✗ ERROR: No existe archivo de configuración: /opt/jaulas2/mi-debian/etc/mychroot.conf
+✗ ERROR: No existe archivo de configuración: /opt/jaulas/mi-debian/etc/mychroot.conf
 ```
 
 **Causa:** La jaula se construyó con una versión antigua del script o el archivo fue borrado manualmente.
@@ -220,7 +220,7 @@ Este script:
 
 ```bash
 # Crear el archivo manualmente
-sudo tee /opt/jaulas2/mi-debian/etc/mychroot.conf << 'EOF'
+sudo tee /opt/jaulas/mi-debian/etc/mychroot.conf << 'EOF'
 FS:/proc
 FS:/dev
 FS:/dev/pts
@@ -233,9 +233,9 @@ EOF
 
 O, si la jaula está intacta, puedes reconstruir solo el archivo de configuración:
 ```bash
-sudo mkdir -p /opt/jaulas2/mi-debian/etc
+sudo mkdir -p /opt/jaulas/mi-debian/etc
 # Editar con tu editor favorito
-sudo nano /opt/jaulas2/mi-debian/etc/mychroot.conf
+sudo nano /opt/jaulas/mi-debian/etc/mychroot.conf
 ```
 
 ---

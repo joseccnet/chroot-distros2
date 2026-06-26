@@ -75,7 +75,7 @@ sudo DRY_RUN=true ./mount_umount-chroot.sh mi-ubuntu mount
 
 ```bash
 sudo ./mount_umount-chroot.sh mi-ubuntu mount
-sudo chroot /opt/jaulas2/mi-ubuntu
+sudo chroot /opt/jaulas/mi-ubuntu
 ```
 
 ---

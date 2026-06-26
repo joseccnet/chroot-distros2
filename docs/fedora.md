@@ -60,7 +60,7 @@ sudo FORZAR_EOL=true ./build-chroot-Fedora.sh mi-fedora41 41
 
 ```bash
 sudo ./mount_umount-chroot.sh mi-fedora mount
-sudo chroot /opt/jaulas2/mi-fedora
+sudo chroot /opt/jaulas/mi-fedora
 ```
 
 ---
