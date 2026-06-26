@@ -796,7 +796,7 @@ if [ "${1:-}" == "status" ]; then
     #   ./mount_umount-chroot.sh status -v        → todos
     #   ./mount_umount-chroot.sh status --verbose  → todos
     #   STATUS_MAX_PROC=999 ./mount_umount-chroot.sh status → límite personalizado
-    local max_procesos="${STATUS_MAX_PROC:-12}"
+    max_procesos="${STATUS_MAX_PROC:-12}"
     if [ "${2:-}" == "--verbose" ] || [ "${2:-}" == "-v" ]; then
         max_procesos=0
     fi
