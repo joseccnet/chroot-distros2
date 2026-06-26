@@ -125,6 +125,44 @@ verificaciones_previas() {
 }
 
 # ==============================================================================
+# Verificar/actualizar keyring para Devuan
+# ==============================================================================
+verificar_keyring_devuan() {
+    local version="$1"
+    local keyring="/usr/share/keyrings/devuan-archive-keyring.gpg"
+    local debian_keyring="/usr/share/keyrings/debian-archive-keyring.gpg"
+
+    # Devuan usa keyring propio o el de Debian como fallback
+    for kr in "$keyring" "$debian_keyring"; do
+        if [ -f "$kr" ] && debootstrap --dry-run --keyring="$kr" "$version" /tmp/.test-keyring 2>/dev/null; then
+            return 0
+        fi
+    done
+
+    # Intentar descargar keyring de Devuan
+    info "Keyring para Devuan no encontrado o desactualizado, descargando..."
+    mkdir -p "$(dirname "$keyring")"
+    local temp_keyring
+    temp_keyring=$(mktemp)
+
+    if wget -qO "$temp_keyring" "https://deb.devuan.org/devuan/pool/main/d/devuan-keyring/devuan-keyring_latest_all.deb" 2>/dev/null; then
+        dpkg -x "$temp_keyring" /tmp/devuan-keyring-extract 2>/dev/null
+        local found_key
+        found_key=$(find /tmp/devuan-keyring-extract -name 'devuan-archive-keyring.gpg' 2>/dev/null | head -1)
+        if [ -n "$found_key" ]; then
+            cp "$found_key" "$keyring"
+            exito "Keyring de Devuan descargado"
+        fi
+        rm -rf /tmp/devuan-keyring-extract
+    fi
+    rm -f "$temp_keyring"
+
+    if [ ! -f "$keyring" ]; then
+        advertencia "No se pudo obtener keyring de Devuan. Use SIN_VERIFICACION_GPG=true si es necesario."
+    fi
+}
+
+# ==============================================================================
 # Generar resumen
 # ==============================================================================
 generar_resumen() {
@@ -376,6 +414,9 @@ echo -e "GPG:          $VERIFICACION_GPG"
 echo -e "Paquetes:     $paquetes_devuan"
 echo " - - - - - - - - - - - - - - - - - -"
 echo ""
+
+# Verificar o actualizar keyring de Devuan
+verificar_keyring_devuan "$version"
 
 # Debootstrap
 info "Ejecutando debootstrap..."

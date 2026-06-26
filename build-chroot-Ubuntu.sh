@@ -189,6 +189,48 @@ verificaciones_previas() {
 }
 
 # ==============================================================================
+# Verificar/actualizar keyring para versiones recientes de Ubuntu
+# ==============================================================================
+verificar_keyring_ubuntu() {
+    local version="$1"
+    local keyring="/usr/share/keyrings/ubuntu-archive-keyring.gpg"
+
+    # Verificar si el keyring actual reconoce la versión destino
+    # Si debootstrap falla por clave desconocida, descargar keyring actualizado
+    if [ ! -f "$keyring" ]; then
+        info "Keyring de Ubuntu no encontrado, descargando..."
+        wget -qO "$keyring" "http://archive.ubuntu.com/ubuntu/project/ubuntu-archive-keyring.gpg" 2>/dev/null || {
+            error_msg "No se pudo descargar el keyring de Ubuntu. Verifique la conexión o use SIN_VERIFICACION_GPG=true"
+            exit 1
+        }
+        exito "Keyring de Ubuntu descargado"
+        return 0
+    fi
+
+    # Intentar verificar con el keyring actual (prueba rápida)
+    if debootstrap --dry-run --keyring="$keyring" "$version" /tmp/.test-keyring 2>/dev/null; then
+        return 0
+    fi
+
+    # El keyring está desactualizado, intentar actualizarlo
+    info "Keyring local desactualizado para Ubuntu $version, descargando actualización..."
+    local temp_keyring
+    temp_keyring=$(mktemp)
+
+    if wget -qO "$temp_keyring" "http://archive.ubuntu.com/ubuntu/project/ubuntu-archive-keyring.gpg" 2>/dev/null ||
+       wget -qO "$temp_keyring" "https://raw.githubusercontent.com/ubuntu-keyring/ubuntu-keyring/main/keyrings/ubuntu-archive-keyring.gpg" 2>/dev/null; then
+        cp "$temp_keyring" "$keyring"
+        rm -f "$temp_keyring"
+        exito "Keyring de Ubuntu actualizado para $version"
+    else
+        rm -f "$temp_keyring"
+        advertencia "No se pudo actualizar el keyring automáticamente"
+        echo "   Puede continuar con SIN_VERIFICACION_GPG=true (solo desarrollo)"
+        echo "   O instale manualmente: sudo apt-get install --reinstall ubuntu-keyring"
+    fi
+}
+
+# ==============================================================================
 # Verificar si es construcción cruzada
 # ==============================================================================
 verificar_construccion_cruzada() {
@@ -409,6 +451,9 @@ if [ ! -f "/usr/share/debootstrap/scripts/$version" ]; then
     info "Creando symlink de debootstrap para $version"
     ln -sf /usr/share/debootstrap/scripts/sid "/usr/share/debootstrap/scripts/$version"
 fi
+
+# Verificar o actualizar keyring de Ubuntu
+verificar_keyring_ubuntu "$version"
 
 # Construcción cruzada: modo --foreign
 if verificar_construccion_cruzada; then

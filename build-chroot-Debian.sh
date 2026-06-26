@@ -204,6 +204,44 @@ verificaciones_previas() {
 }
 
 # ==============================================================================
+# Verificar/actualizar keyring para versiones de Debian
+# ==============================================================================
+verificar_keyring_debian() {
+    local version="$1"
+    local keyring="/usr/share/keyrings/debian-archive-keyring.gpg"
+
+    if [ ! -f "$keyring" ]; then
+        info "Keyring de Debian no encontrado, descargando..."
+        wget -qO "$keyring" "https://keyring.debian.org/keyrings/debian-archive-keyring.gpg" 2>/dev/null || {
+            error_msg "No se pudo descargar el keyring de Debian"
+            exit 1
+        }
+        exito "Keyring de Debian descargado"
+        return 0
+    fi
+
+    if debootstrap --dry-run --keyring="$keyring" "$version" /tmp/.test-keyring 2>/dev/null; then
+        return 0
+    fi
+
+    info "Keyring local desactualizado para Debian $version, descargando actualización..."
+    local temp_keyring
+    temp_keyring=$(mktemp)
+
+    if wget -qO "$temp_keyring" "https://keyring.debian.org/keyrings/debian-archive-keyring.gpg" 2>/dev/null ||
+       wget -qO "$temp_keyring" "https://ftp-master.debian.org/keys/archive-key-$(echo "$version" | sed 's/[0-9]//g').asc" 2>/dev/null; then
+        cp "$temp_keyring" "$keyring"
+        rm -f "$temp_keyring"
+        exito "Keyring de Debian actualizado para $version"
+    else
+        rm -f "$temp_keyring"
+        advertencia "No se pudo actualizar el keyring automáticamente"
+        echo "   Puede continuar con SIN_VERIFICACION_GPG=true (solo desarrollo)"
+        echo "   O instale: sudo apt-get install --reinstall debian-keyring"
+    fi
+}
+
+# ==============================================================================
 # Verificar si es construcción cruzada
 # ==============================================================================
 verificar_construccion_cruzada() {
@@ -563,6 +601,9 @@ if [ ! -f "/usr/share/debootstrap/scripts/$version" ]; then
     info "Creando symlink de debootstrap para $version"
     ln -sf /usr/share/debootstrap/scripts/sid "/usr/share/debootstrap/scripts/$version"
 fi
+
+# Verificar o actualizar keyring de Debian
+verificar_keyring_debian "$version"
 
 # Construcción cruzada: modo --foreign
 if verificar_construccion_cruzada; then
