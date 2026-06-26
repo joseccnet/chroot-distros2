@@ -39,7 +39,7 @@ sudo ./build-chroot-Debian.sh mi-debian trixie
 sudo ./mount_umount-chroot.sh mi-debian mount
 
 # 4. Entrar y trabajar
-sudo chroot /opt/jaulas2/mi-debian
+sudo chroot /opt/jaulas/mi-debian
 
 # 5. Salir y desmontar
 exit
@@ -167,7 +167,7 @@ ulimit -a
 
 # Ajustar antes de entrar a la jaula
 prlimit --nofile=65536 --memlock=unlimited \
-  chroot /opt/jaulas2/mi-debian /bin/bash
+  chroot /opt/jaulas/mi-debian /bin/bash
 
 # Hacerlo permanente (/etc/security/limits.conf)
 root    soft    nofile      1048576
@@ -188,7 +188,7 @@ root    hard    memlock     unlimited
 
 ```bash
 # ❌ INCORRECTO — peligroso
-sudo rm -rf /opt/jaulas2/mi-debian
+sudo rm -rf /opt/jaulas/mi-debian
 
 # ✅ CORRECTO — seguro
 sudo ./removeVM-chroot.sh mi-debian
