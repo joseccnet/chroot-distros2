@@ -445,7 +445,7 @@ verificar_keyring_ubuntu "$version"
 if verificar_construccion_cruzada; then
     info "Modo construcción cruzada (--foreign)"
     echo "   Primera etapa: extrayendo archivos base..."
-    debootstrap --merged-usr --arch "$arch" --verbose $FLAG_GPG $KEYRING_FLAG \
+    debootstrap --merged-usr --exclude=usr-is-merged --arch "$arch" --verbose $FLAG_GPG $KEYRING_FLAG \
         --include="$paquetes_ubuntu" "$version" "$CHROOT" "$MIRROR_PRINCIPAL" || {
         echo ""
         echo "   Intentando con mirror alternativo..."
@@ -455,7 +455,7 @@ if verificar_construccion_cruzada; then
         else
             local_mirror_alt="http://archive.ubuntu.com/ubuntu"
         fi
-        debootstrap --merged-usr --arch "$arch" --verbose $FLAG_GPG $KEYRING_FLAG \
+        debootstrap --merged-usr --exclude=usr-is-merged --arch "$arch" --verbose $FLAG_GPG $KEYRING_FLAG \
             --include="$paquetes_ubuntu" "$version" "$CHROOT" "$local_mirror_alt" || {
             error_msg "Falló debootstrap (primera etapa). Revise los mensajes anteriores."
             exit 1
@@ -506,7 +506,7 @@ fi
 
 # Construcción normal (misma arquitectura)
 info "Intentando mirror principal: $MIRROR_PRINCIPAL/dists/$version/ ..."
-if debootstrap --merged-usr --components=main,universe --arch "$arch" --verbose $FLAG_GPG $KEYRING_FLAG \
+if debootstrap --merged-usr --exclude=usr-is-merged --components=main,universe --arch "$arch" --verbose $FLAG_GPG $KEYRING_FLAG \
     --include="$paquetes_ubuntu" "$version" "$CHROOT" "$MIRROR_PRINCIPAL"; then
     archiveSite="archive"
     exito "debootstrap completado exitosamente"
@@ -514,7 +514,7 @@ else
     # Solo usar old-releases para versiones EOL, no para la actual (resolute, noble, etc.)
     if [[ -n "${VERSIONES_EOL[$version]+x}" ]]; then
         advertencia "Mirror principal falló, intentando old-releases..."
-        if debootstrap --merged-usr --arch "$arch" --verbose $FLAG_GPG $KEYRING_FLAG \
+        if debootstrap --merged-usr --exclude=usr-is-merged --arch "$arch" --verbose $FLAG_GPG $KEYRING_FLAG \
             --include="$paquetes_ubuntu" "$version" "$CHROOT" "http://old-releases.ubuntu.com/ubuntu"; then
             archiveSite="old-releases"
         else
