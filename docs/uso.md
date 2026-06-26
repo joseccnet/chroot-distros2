@@ -62,7 +62,15 @@ sudo ./build-chroot-Centos.sh mi-centos stream9
 ### 2. Ver el estado de las jaulas
 
 ```bash
+# Resumen con máx 12 procesos por jaula
 sudo ./mount_umount-chroot.sh status
+
+# Lista completa de procesos (sin límite)
+sudo ./mount_umount-chroot.sh status -v
+sudo ./mount_umount-chroot.sh status --verbose
+
+# Límite personalizado
+sudo STATUS_MAX_PROC=999 ./mount_umount-chroot.sh status
 ```
 
 **Salida esperada:**
